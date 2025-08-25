@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive 3D Earth</title>
+  <style>
+    body { margin: 0; background: #000; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+  <script>
+    // Scene setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(
+      60, window.innerWidth / window.innerHeight, 0.1, 1000
+    );
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    const pointLight = new THREE.PointLight(0xffffff, 1);
+    pointLight.position.set(10, 0, 20);
+    scene.add(pointLight);
+
+    // Variables for interaction
+    let earth;
+    let targetX = 0, targetY = 0;
+    let mouseX = 0, mouseY = 0;
+
+    // Track mouse movement
+    document.addEventListener("mousemove", (event) => {
+      // Normalize mouse position between -1 and 1
+      mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+      mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+    });
+
+    // Load Earth texture
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(
+      "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
+      function (texture) {
+        const geometry = new THREE.SphereGeometry(2, 64, 64);
+        const material = new THREE.MeshPhongMaterial({ map: texture });
+        earth = new THREE.Mesh(geometry, material);
+        scene.add(earth);
+
+        camera.position.z = 6;
+
+        // Animation loop
+        function animate() {
+          requestAnimationFrame(animate);
+
+          // Smooth interpolation
+          targetX = mouseX * 0.5; // scale rotation sensitivity
+          targetY = mouseY * 0.5;
+
+          if (earth) {
+            earth.rotation.y += 0.05 * (targetX - earth.rotation.y);
+            earth.rotation.x += 0.05 * (targetY - earth.rotation.x);
+          }
+
+          renderer.render(scene, camera);
+        }
+        animate();
+      }
+    );
+
+    // Responsive resize
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

@@ -29,14 +29,57 @@
 
     // Variables for interaction
     let earth;
-    let targetX = 0, targetY = 0;
-    let mouseX = 0, mouseY = 0;
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    let earthRotation = { x: 0, y: 0 };
 
-    // Track mouse movement
-    document.addEventListener("mousemove", (event) => {
-      // Normalize mouse position between -1 and 1
-      mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-      mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+    // Event listeners for mouse drag
+    renderer.domElement.addEventListener('mousedown', function(e) {
+      isDragging = true;
+      previousMousePosition.x = e.clientX;
+      previousMousePosition.y = e.clientY;
+    });
+    renderer.domElement.addEventListener('mousemove', function(e) {
+      if (!isDragging || !earth) return;
+      const deltaX = e.clientX - previousMousePosition.x;
+      const deltaY = e.clientY - previousMousePosition.y;
+
+      // Adjust the multiplier for sensitivity (try 0.01 or 0.005 for fine-tuning)
+      earth.rotation.y += deltaX * 0.01;
+      earth.rotation.x += deltaY * 0.01;
+      // Clamp rotation.x to avoid flipping over the top
+      earth.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, earth.rotation.x));
+
+      previousMousePosition.x = e.clientX;
+      previousMousePosition.y = e.clientY;
+    });
+    renderer.domElement.addEventListener('mouseup', function(e) {
+      isDragging = false;
+    });
+    renderer.domElement.addEventListener('mouseleave', function(e) {
+      isDragging = false;
+    });
+    // Optional: support touch events
+    renderer.domElement.addEventListener('touchstart', function(e) {
+      if (e.touches.length == 1) {
+        isDragging = true;
+        previousMousePosition.x = e.touches[0].clientX;
+        previousMousePosition.y = e.touches[0].clientY;
+      }
+    });
+    renderer.domElement.addEventListener('touchmove', function(e) {
+      if (!isDragging || !earth || e.touches.length != 1) return;
+      const deltaX = e.touches[0].clientX - previousMousePosition.x;
+      const deltaY = e.touches[0].clientY - previousMousePosition.y;
+      earth.rotation.y += deltaX * 0.01;
+      earth.rotation.x += deltaY * 0.01;
+      earth.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, earth.rotation.x));
+      previousMousePosition.x = e.touches[0].clientX;
+      previousMousePosition.y = e.touches[0].clientY;
+      e.preventDefault();
+    });
+    renderer.domElement.addEventListener('touchend', function(e) {
+      isDragging = false;
     });
 
     // Load Earth texture
@@ -48,22 +91,11 @@
         const material = new THREE.MeshPhongMaterial({ map: texture });
         earth = new THREE.Mesh(geometry, material);
         scene.add(earth);
-
         camera.position.z = 6;
 
         // Animation loop
         function animate() {
           requestAnimationFrame(animate);
-
-          // Smooth interpolation
-          targetX = mouseX * 0.5; // scale rotation sensitivity
-          targetY = mouseY * 0.5;
-
-          if (earth) {
-            earth.rotation.y += 0.05 * (targetX - earth.rotation.y);
-            earth.rotation.x += 0.05 * (targetY - earth.rotation.x);
-          }
-
           renderer.render(scene, camera);
         }
         animate();
